@@ -1,0 +1,83 @@
+#!/bin/bash
+
+# Detect current user and home directory
+CURRENT_USER=$(id -un)
+CURRENT_DATE=$(date +"%Y-%m-%d %H:%M:%S")
+USER_HOME=$(eval echo "~$CURRENT_USER")
+
+# Print the user info
+echo "[$CURRENT_DATE] Script executed by $CURRENT_USER"
+echo "User's home directory is: $USER_HOME"
+
+# Load bash environment (non-hardcoded)
+if [ -f "$USER_HOME/.bashrc" ]; then
+    echo "Loading $USER_HOME/.bashrc ..."
+    source "$USER_HOME/.bashrc"
+else
+    echo "No .bashrc found for user $CURRENT_USER"
+fi
+
+# -----------------------------------------------------------------
+
+# *** Add Node.js path to PATH before sourcing .bashrc ***
+export PATH="$HOME/.local/nodejs/bin:$PATH"
+
+# -----------------------------------------------------------------
+
+# Load environment variables from .env file if it exists
+if [ -f .env ]; then
+    export $(cat .env | sed 's/#.*//g' | xargs)
+fi
+
+# -----------------------------------------------------------------
+
+# Detect Node.js binary path
+NODE_PATH=$(which node)
+
+if [ -z "$NODE_PATH" ]; then
+  echo "Error: Node.js not found in PATH"
+  exit 1
+else
+  echo "Using Node.js from: $NODE_PATH"
+fi
+
+# -----------------------------------------------------------------
+
+# Get the current directory and append /index.js
+CURRENT_DIR=$(dirname "$(realpath "$0")")
+NODE_APP_PATH="$CURRENT_DIR/index.js"
+
+# Find and kill any running instance of the app
+APP_PID=$(pgrep -f "$NODE_APP_PATH")
+
+if [ -n "$APP_PID" ]; then
+  echo "Stopping Node.js app (PID: $APP_PID) gracefully..., wait 10 seconds"
+  kill -SIGINT "$APP_PID"
+  sleep 10
+
+  if kill -0 "$APP_PID" 2>/dev/null; then
+    echo "App did not stop, forcefully terminating it..."
+    kill -9 "$APP_PID"
+  else
+    echo "Node.js app stopped gracefully."
+  fi
+else
+  echo "No running instance of the app found."
+fi
+
+# -----------------------------------------------------------------
+
+# Log file for the application
+LOG_FILE="$CURRENT_DIR/app.log"
+
+# Delete the log file if it exists
+if [ -f "$LOG_FILE" ]; then
+  echo "Deleting existing log file: $LOG_FILE"
+  rm "$LOG_FILE"
+fi
+
+# -----------------------------------------------------------------
+
+# Start the Node.js app in foreground (systemd will manage it)
+echo "Starting Node.js app..."
+exec "$NODE_PATH" "$NODE_APP_PATH"

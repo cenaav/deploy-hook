@@ -1,0 +1,8 @@
+{
+  "projects": [
+    {
+      "name": "exar-ui-streamlet",
+      "deployScript": "/home/cena/projects/exar/exar-ui-streamlet/run"
+    }
+  ]
+}

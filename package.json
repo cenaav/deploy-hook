@@ -1,0 +1,26 @@
+{
+  "name": "deploy-hook",
+  "version": "1.0.0",
+  "description": "This project is a lightweight webhook server designed to automate deployments of multiple projects on a server whenever changes are pushed to GitHub (or other Git-based repositories). It provides a secure and configurable way to trigger project-specific deployment scripts without exposing personal files or the server’s sensitive directories.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cenaav/deploy-hook.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/cenaav/deploy-hook/issues"
+  },
+  "homepage": "https://github.com/cenaav/deploy-hook#readme",
+  "dependencies": {
+    "body-parser": "^2.2.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0"
+  }
+}

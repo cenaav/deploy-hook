@@ -1,0 +1,44 @@
+#!/bin/bash
+
+USER_NAME="cena"
+SERVICE_NAME="deploy-hook.service"
+SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
+EXEC_PATH="/home/cena/projects/deploy-hook/run"
+
+
+# Check if the executable exists
+if [ ! -f "$EXEC_PATH" ]; then
+    echo "❌ Executable not found: $EXEC_PATH"
+    exit 1
+fi
+
+# Create the systemd service file
+echo "✅ Creating systemd service: $SERVICE_NAME ..."
+sudo bash -c "cat > $SERVICE_PATH" <<EOL
+[Unit]
+Description=Exar UI Prototype Streamlet Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$EXEC_PATH
+WorkingDirectory=$(dirname $EXEC_PATH)
+User=$USER_NAME
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/deploy-hook.log
+StandardError=append:/var/log/deploy-hook.log
+
+[Install]
+WantedBy=multi-user.target
+EOL
+
+# Reload systemd and enable the service
+echo "✅ Enabling and starting the service ..."
+sudo systemctl daemon-reload
+sudo systemctl enable $SERVICE_NAME
+sudo systemctl restart $SERVICE_NAME
+
+# Show service status
+echo "✅ Service status:"
+sudo systemctl status $SERVICE_NAME --no-pager
