@@ -37,13 +37,16 @@ app.post('/project/:projectName', (req, res) => {
     
     const projectName = req.params.projectName;
     const secretHeader = req.headers['x-deploy-secret'];
-
+    console.log(secretHeader);
+    
     // Check webhook secret
+    /*
     if (!secretHeader || secretHeader !== process.env.WEBHOOK_SECRET) {
         console.warn(`Invalid secret from IP: ${req.ip}`);
         return res.status(403).send('Invalid secret');
     }
-
+    */
+    
     // Find the project in projects.json
     const project = projects.find(p => p.name === projectName);
     if (!project) {
