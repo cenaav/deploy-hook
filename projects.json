@@ -2,7 +2,7 @@
   "projects": [
     {
       "name": "exar-ui-streamlet",
-      "deployScript": "/home/cena/projects/exar/exar-ui-streamlet/run_github"
+      "deployScript": "/home/cena/projects/exar/exar-ui-streamlet/run-docker.sh"
     }
   ]
 }
