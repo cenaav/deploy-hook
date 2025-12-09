@@ -60,19 +60,35 @@ app.post('/project/:projectName', (req, res) => {
     console.log(`Executing deploy script for project ${projectName}: ${deployScript}`);
     console.log(`Working directory: ${deployDir}`);
 
+    // -------------------------------------------------------------------------------
+
     // Spawn the deploy script in a detached background process
+    /*
     const deploy = spawn(deployScript, {
         shell: true,
         detached: true,   // Run independently in the background
         stdio: 'ignore',  // Ignore stdout/stderr to avoid blocking Node.js
         cwd: deployDir    // Set working directory to the script's folder
     });
+    */
 
+    // Set log file inside project directory
+    const logFile = path.join(deployDir, 'deploy.log');
+    // Open log file in append mode
+    const out = fs.openSync(logFile, 'a');
+    const err = fs.openSync(logFile, 'a');
+    // Spawn deploy script and log output
+    const deploy = spawn(deployScript, {
+        shell: true,
+        detached: true,
+        stdio: ['ignore', out, err],
+        cwd: deployDir
+    });
+
+    // -------------------------------------------------------------------------------
     // Allow the parent Node.js process to exit without waiting for the child
     deploy.unref();
-
     console.log(`Deploy script started for project ${projectName} (PID: ${deploy.pid})`);
-
     // Immediately respond to the webhook request
     res.send(`Deploy triggered for project ${projectName}, PID: ${deploy.pid}`);
 });
