@@ -7,6 +7,35 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const { spawn } = require('child_process');
 
+//============================
+//Winston Logger Configuration
+//============================
+const { createLogger, format, transports } = require('winston');
+
+const logDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+}
+
+const logger = createLogger({
+    level: 'info',
+    format: format.combine(
+        format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        format.printf(({ timestamp, level, message }) => {
+            return `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+        })
+    ),
+    transports: [
+        new transports.File({
+            filename: path.join(logDir, 'app.log'),
+            maxsize: 10 * 1024 * 1024, // 10MB
+            maxFiles: 5
+        }),
+        new transports.Console()
+    ]
+});
+/* ============================ */
+
 const app = express();
 app.use(bodyParser.json());
 
@@ -33,11 +62,11 @@ app.get('/', (req, res) => {
 app.post('/project/:projectName', (req, res) => {
 
     // Log incoming request info
-    console.log(`Incoming request from IP: ${req.ip}, path: ${req.path}`);
+    logger.info(`Incoming request from IP: ${req.ip}, path: ${req.path}`);
     
     const projectName = req.params.projectName;
     const secretHeader = req.headers['x-deploy-secret'];
-    console.log(secretHeader);
+    logger.info(`Secret header: ${secretHeader}`);
     
     // Check webhook secret
     /*
@@ -50,15 +79,15 @@ app.post('/project/:projectName', (req, res) => {
     // Find the project in projects.json
     const project = projects.find(p => p.name === projectName);
     if (!project) {
-        console.warn(`No deploy script configured for project ${projectName}`);
+        logger.warn(`No deploy script configured for project ${projectName}`);
         return res.status(400).send(`No deploy script configured for project ${projectName}`);
     }
 
     const deployScript = project.deployScript;
     const deployDir = path.dirname(deployScript);
 
-    console.log(`Executing deploy script for project ${projectName}: ${deployScript}`);
-    console.log(`Working directory: ${deployDir}`);
+    logger.info(`Executing deploy script for project ${projectName}: ${deployScript}`);
+    logger.info(`Working directory: ${deployDir}`);
 
     // -------------------------------------------------------------------------------
 
@@ -88,11 +117,11 @@ app.post('/project/:projectName', (req, res) => {
     // -------------------------------------------------------------------------------
     // Allow the parent Node.js process to exit without waiting for the child
     deploy.unref();
-    console.log(`Deploy script started for project ${projectName} (PID: ${deploy.pid})`);
+    logger.info(`Deploy script started for project ${projectName} (PID: ${deploy.pid})`);
     // Immediately respond to the webhook request
     res.send(`Deploy triggered for project ${projectName}, PID: ${deploy.pid}`);
 });
 
 // Start Express server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Deploy webhook listening on port ${PORT}`));
+app.listen(PORT, () => logger.info(`Deploy webhook listening on port ${PORT}`));

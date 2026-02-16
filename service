@@ -3,7 +3,7 @@
 USER_NAME="cena"
 SERVICE_NAME="deploy-hook.service"
 SERVICE_PATH="/etc/systemd/system/$SERVICE_NAME"
-EXEC_PATH="/home/cena/projects/deploy-hook/run"
+EXEC_PATH="/home/cena/projects/jaryan/deploy-hook/run"
 
 
 # Check if the executable exists
