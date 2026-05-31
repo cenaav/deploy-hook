@@ -3,6 +3,10 @@
     {
       "name": "exar-ui-streamlet",
       "deployScript": "/home/cena/projects/exar/exar-ui-streamlet/deploy.sh"
+    },
+    {
+      "name": "pool-pilot",
+      "deployScript": "/home/cena/projects/pp/pool-pilot/deploy.sh"
     }
   ]
 }

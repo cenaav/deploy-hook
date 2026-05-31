@@ -3,8 +3,8 @@ require('dotenv').config();
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const express = require('express');
-const bodyParser = require('body-parser');
 const { spawn } = require('child_process');
 
 //============================
@@ -37,20 +37,19 @@ const logger = createLogger({
 /* ============================ */
 
 const app = express();
-app.use(bodyParser.json());
 
-// Load projects configuration from JSON file
-// Example projects.json format:
-// {
-//   "projects": [
-//     { "name": "exar-ui-streamlet", "deployScript": "/home/cena/projects/exar/exar-ui-streamlet/run" }
-//   ]
-// }
+// Keep raw body for GitHub signature verification
+app.use(express.json({
+    verify: (req, res, buf) => {
+        req.rawBody = buf;
+    }
+}));
+
 const projectsData = JSON.parse(fs.readFileSync('./projects.json', 'utf8'));
 const projects = projectsData.projects;
 
 // GET endpoint for health check / time
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
     const currentTimeSeconds = Math.floor(Date.now() / 1000);
     res.json({
         status: 'ok',
@@ -61,20 +60,23 @@ app.get('/', (req, res) => {
 // POST endpoint for project deploy
 app.post('/project/:projectName', (req, res) => {
 
-    // Log incoming request info
     logger.info(`Incoming request from IP: ${req.ip}, path: ${req.path}`);
-    
+
     const projectName = req.params.projectName;
-    const secretHeader = req.headers['x-deploy-secret'];
-    logger.info(`Secret header: ${secretHeader}`);
-    
-    // Check webhook secret
-    /*
-    if (!secretHeader || secretHeader !== process.env.WEBHOOK_SECRET) {
-        console.warn(`Invalid secret from IP: ${req.ip}`);
-        return res.status(403).send('Invalid secret');
+
+    // Verify GitHub webhook signature (HMAC-SHA256)
+    const signature = req.headers['x-hub-signature-256'];
+    if (!signature || !process.env.WEBHOOK_SECRET) {
+        logger.warn(`Missing signature or WEBHOOK_SECRET not set. IP: ${req.ip}`);
+        return res.status(403).send('Forbidden');
     }
-    */
+    const hmac = crypto.createHmac('sha256', process.env.WEBHOOK_SECRET);
+    hmac.update(req.rawBody);
+    const expected = `sha256=${hmac.digest('hex')}`;
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+        logger.warn(`Invalid signature from IP: ${req.ip}`);
+        return res.status(403).send('Invalid signature');
+    }
     
     // Find the project in projects.json
     const project = projects.find(p => p.name === projectName);

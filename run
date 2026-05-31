@@ -25,8 +25,10 @@ export PATH="$HOME/.local/nodejs/bin:$PATH"
 # -----------------------------------------------------------------
 
 # Load environment variables from .env file if it exists
-if [ -f .env ]; then
-    export $(cat .env | sed 's/#.*//g' | xargs)
+if [ -f "$CURRENT_DIR/.env" ]; then
+    set -a
+    source "$CURRENT_DIR/.env"
+    set +a
 fi
 
 # -----------------------------------------------------------------
