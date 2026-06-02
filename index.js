@@ -65,17 +65,24 @@ app.post('/project/:projectName', (req, res) => {
     const projectName = req.params.projectName;
 
     // Verify GitHub webhook signature (HMAC-SHA256)
-    const signature = req.headers['x-hub-signature-256'];
-    if (!signature || !process.env.WEBHOOK_SECRET) {
-        logger.warn(`Missing signature or WEBHOOK_SECRET not set. IP: ${req.ip}`);
-        return res.status(403).send('Forbidden');
-    }
-    const hmac = crypto.createHmac('sha256', process.env.WEBHOOK_SECRET);
-    hmac.update(req.rawBody);
-    const expected = `sha256=${hmac.digest('hex')}`;
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-        logger.warn(`Invalid signature from IP: ${req.ip}`);
-        return res.status(403).send('Invalid signature');
+    const skipSigCheck = process.env.SKIP_SIGNATURE_CHECK === 'true';
+    if (skipSigCheck) {
+        logger.warn(`Signature check skipped (SKIP_SIGNATURE_CHECK=true). IP: ${req.ip}`);
+    } else {
+        const signature = req.headers['x-hub-signature-256'];
+        if (!signature || !process.env.WEBHOOK_SECRET) {
+            logger.warn(`Missing signature or WEBHOOK_SECRET not set. IP: ${req.ip}`);
+            return res.status(403).send('Forbidden');
+        }
+        const hmac = crypto.createHmac('sha256', process.env.WEBHOOK_SECRET);
+        hmac.update(req.rawBody || Buffer.alloc(0));
+        const expected = `sha256=${hmac.digest('hex')}`;
+        const sigBuf = Buffer.from(signature);
+        const expBuf = Buffer.from(expected);
+        if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
+            logger.warn(`Invalid signature from IP: ${req.ip}`);
+            return res.status(403).send('Invalid signature');
+        }
     }
     
     // Find the project in projects.json
